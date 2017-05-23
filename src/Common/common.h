@@ -15,6 +15,11 @@ typedef int64_t s64;
 
 typedef unsigned char byte;
 
+typedef int bool;
+
+#define true 1
+#define false 0
+
 #define ArrayCount(Array) (sizeof(Array) / sizeof(Array[0]))
 
 #define Assert(cond) do { if(!__builtin_expect((cond), 1)) { __builtin_trap(); } } while(0)
