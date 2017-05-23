@@ -583,8 +583,8 @@ mat44 mat44_LookAt(vec3f Position, vec3f LookPosition, vec3f Up)
 {
 
     vec3f W = vec3f_NormalizeFrom(Position - LookPosition); //Forward
-    vec3f V = vec3f_NormalizeFrom(Up - ((vec3f_Dot(Up, W) * W))); //Left
-    vec3f U = vec3f_Cross(V, W); //UP
+    vec3f V = vec3f_NormalizeFrom(Up - ((vec3f_Dot(Up, W) * W))); //Up
+    vec3f U = vec3f_Cross(V, W); //right
 
     mat44 M = mat44_Make(U.x, V.x, W.x, -Position.x,
                          U.y, V.y, W.y, -Position.y,
@@ -628,12 +628,18 @@ struct quaternion {
     quaternion() : r(0), x(0), y(0), z(0) {}
     quaternion(float R, float X, float Y, float Z) : r(R), x(X), y(Y), z(Z) {}
 };
+mat33 QuaternionToRotation(quaternion);
 
 #define quaternion_Identity quaternion(1, 0, 0, 0)
 
 quaternion quaternion_MakeFromRealVec(float r, vec3f v)
 {
     return quaternion(r, v.x, v.y, v.z);
+}
+
+quaternion quaternion_FromAxisAngle(float Angle, vec3f Axis )
+{
+    return quaternion_MakeFromRealVec(Cosf(Angle / 2), Sinf(Angle / 2) * Axis);
 }
 
 quaternion operator-(quaternion q)
@@ -667,6 +673,12 @@ quaternion operator*(quaternion q, float s)
 quaternion operator*(float s, quaternion q)
 {
     return quaternion_MakeFromRealVec(q.r * s, q.v * s); 
+}
+
+vec3f operator*(quaternion q, vec3f v)
+{
+    mat33 Rotation = QuaternionToRotation(q);
+    return Rotation * v;
 }
 
 float quaternion_Length(quaternion q)
@@ -740,8 +752,7 @@ quaternion Slerp(quaternion Start, quaternion End, float t)
     Assert(t >= 0.0);
     Assert(t <= 1.0);
 
-    quaternion u = End - (quaternion_Dot(Start, End) * Start);
-    u = (1 / quaternion_Length(u)) * u; //Normalize
+    quaternion u = quaternion_NormalizeFrom(End - (quaternion_Dot(Start, End) * Start));
     float Angle = Acosf(quaternion_Dot(Start, End));
     return (Cosf(t * Angle) * Start) + (Sinf(t * Angle) * u);
 }
@@ -785,7 +796,7 @@ quaternion_pair RotationToQuaternion(mat33 m)
     }
 
     rotation_axis_angle AxisAngle = mat33_AxisAngleFromRotation(m);
-    quaternion q1 = quaternion_MakeFromRealVec(Cosf(AxisAngle.Angle / 2), Sinf(AxisAngle.Angle / 2) * AxisAngle.Axis);
+    quaternion q1 = quaternion_FromAxisAngle(AxisAngle.Angle, AxisAngle.Axis);
     
     return {.q1 = q1, .q2 = -q1};
 }

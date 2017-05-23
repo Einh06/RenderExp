@@ -6,6 +6,16 @@
 #define M_PI    3.141592653
 #define M_2_PI  6.283185307
 
+inline float DegToRad(float d)
+{
+    return d * 0.017453293; // PI / 180
+}
+
+inline float RadToDeg(float r)
+{
+    return r * 57.295779524; // 180 / PI
+}
+
 inline int Abs(int v) {
     return __builtin_abs(v);
 }

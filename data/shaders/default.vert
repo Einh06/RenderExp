@@ -16,5 +16,5 @@ void main() {
     gl_Position = MVP * vec4(position, 1.0); 
 
     Normal_cameraspace = (View * Model * vec4(normal, 1.0)).xyz;
-    LightDirection_cameraspace = (View * Model * vec4(0, 0, 1, 1)).xyz;
+    LightDirection_cameraspace = (vec4(0, 0, 1, 1)).xyz;
 }
