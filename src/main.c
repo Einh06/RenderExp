@@ -5,11 +5,19 @@
 #include <sys/param.h> // MAXPATHLEN
 #include <stdio.h>
 #include <stdlib.h>
-#include <memory.h>
 
 #include "Common/common.h" // some things I like to use
 #include "Common/math.h"   // some of the common Math stuff I need
 #include "Common/algebra.h" // impo
+
+void MemoryCopy(void *Dest, void *Source, size_t Count)
+{
+    char* d = Dest;
+    char* s = Source;
+    for (size_t i = 0; i < Count; ++i) {
+        d[i] = s[i]; 
+    }
+}
 
 typedef struct triangle {
     Vec3f v1;
@@ -50,12 +58,12 @@ mesh3d mesh3d_Make(u32 VerticesCount, Vec3f* Vertices, u32 IndexesCount, u32* In
     Result.VerticesCount = VerticesCount;
     Result.VerticesBufferSize = sizeof(Vec3f) * VerticesCount;
     Result.Vertices = (Vec3f*)malloc(Result.VerticesBufferSize);
-    memcpy(Result.Vertices, Vertices, Result.VerticesBufferSize);
+    MemoryCopy(Result.Vertices, Vertices, Result.VerticesBufferSize);
 
     Result.IndexesCount = IndexesCount;
     Result.IndexesBufferSize = sizeof(u32) * IndexesCount;
     Result.Indexes = (u32*)malloc(Result.IndexesBufferSize);
-    memcpy(Result.Indexes, Indexes, Result.IndexesBufferSize);
+    MemoryCopy(Result.Indexes, Indexes, Result.IndexesBufferSize);
 
     return Result;
 }
