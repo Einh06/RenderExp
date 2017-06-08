@@ -33,6 +33,7 @@ typedef struct triangle_edges_index {
 
 typedef struct camera {
     Vec3f Position;
+    Quaternion Orientation;
     Vec3f Forward;
     Vec3f Up;
 } camera;
@@ -48,6 +49,32 @@ typedef struct mesh3d {
     u32 IndexesCount;
     u32* Indexes;
 } mesh3d;
+
+typedef struct Ray {
+    Vec3f Origin;
+    Vec3f Direction;
+} Ray;
+
+Ray Ray_Make(Vec3f Origin, Vec3f Direction)
+{
+    return (Ray){.Origin = Origin, .Direction = Direction};
+}
+
+float IntersectRayPlane(Ray r, Vec3f v1, Vec3f v2)
+{
+    //TODO(@Florian): Implement this!
+}
+
+float IntersectRaySphere(Ray r, Pos3f SphereCenter, float Radius)
+{
+    //TODO(@Florian): Implement this!
+}
+
+bool IntersectRayTriangle(Ray r, Pos3f p1, Pos3f p2, Pos3f p3)
+{
+    //TODO(@Florian): Implement this!
+}
+
 
 /**
  * This will make a copy the vertices and triangle buffer.
@@ -253,9 +280,10 @@ void Initialisation(string ModelFilepath)
     FreeFileContent(ifsContent);
 }
 
-Mat44 ViewMatrixFromCamera(camera Camera) {
-
-    return Mat44_LookAt(Camera.Position, Vec3f_Add(Camera.Position, Camera.Forward), Camera.Up);
+Mat44 ViewMatrixFromCamera(camera Camera) 
+{
+    Vec3f Forward = Vec3f_NormalizeFrom(Camera.Orientation.v);
+    return Mat44_LookAt(Camera.Position, Vec3f_Add(Camera.Position, Forward), Vec3f_Y);
 }
 
 int main(int Argc __unused, char** Argv __unused)
@@ -269,7 +297,7 @@ int main(int Argc __unused, char** Argv __unused)
      
     Initialisation(AbsoluteTeapotPath);
 
-    camera Camera = {.Position = Vec3f_Make(0, 0, -1), .Forward = Vec3f_Make(0, 0, 1), .Up = Vec3f_Y};
+    camera Camera = (camera) {.Position = Vec3f_Make(0, 0, -1), .Orientation = Quaternion_MakeReal(0, 0, 0, 1), .Forward = Vec3f_Make(0, 0, 1), .Up = Vec3f_Y};
 
     string_Free(TeapotPath);
     string_Free(AbsoluteTeapotPath);
@@ -439,11 +467,16 @@ int main(int Argc __unused, char** Argv __unused)
     Mat33 EndRotationInterpolation   = Mat33_MakeRotation(Vec3f_Y, M_PI_2 + M_PI_4);
     Mat44 TranslationMatrix = Mat44_MakeTranslate(0, 0, 3);
 
-    Mat44 View = /*ViewMatrixFromCamera(Camera);//*/Mat44_LookAt(Vec3f_Make(0, 0, -1), Vec3f_Make(0, 0, 2.5), Vec3f_Make(0, 1, 0));
     Mat44 Projection = Mat44_Perspective(35, 0.1, 100, Width, Height);
 
     double LastTimeStamp = glfwGetTime();
     double TimeForFrame = 0.01666;
+
+
+    double CursorX, CursorY, PrevCursorX, PrevCursorY;
+    glfwGetCursorPos(Window, &CursorX, &CursorY); 
+    PrevCursorX = CursorX;
+    PrevCursorY = CursorY;
 
     while(!glfwWindowShouldClose(Window)) {
 
@@ -455,13 +488,56 @@ int main(int Argc __unused, char** Argv __unused)
         double CurrentTime = glfwGetTime();
         double DeltaTime = CurrentTime - LastTimeStamp;
 
+
+        glfwGetCursorPos(Window, &CursorX, &CursorY);
+        float DiffX = CursorX - PrevCursorX;
+        float DiffY = CursorY - PrevCursorY;
+        if ((Absf(DiffX) > F_EPS) ||
+            (Absf(DiffY) > F_EPS) )
+        {
+            const float Sensitivity = 0.05;
+
+            Mat33 MatRotationY = Mat33_MakeRotationY(-DiffX * Sensitivity * DeltaTime);
+            Mat33 MatRotationX = Mat33_MakeRotationX(-DiffY * Sensitivity * DeltaTime);
+            Mat33 MatRotation = Mat33_MultMat(MatRotationY, MatRotationX);
+
+            quaternion_pair Pair = RotationToQuaternion(MatRotation);
+
+            Quaternion Rotation = Pair.q1;
+            Camera.Orientation = Quaternion_NormalizeFrom(Quaternion_MultQuaternion(Rotation, Camera.Orientation));
+        }  
+        PrevCursorX = CursorX;
+        PrevCursorY = CursorY;
+
+        Vec3f MoveDirection = Vec3f_Make(0, 0, 0);
+
+        if (glfwGetKey(Window, GLFW_KEY_W) == GLFW_PRESS) {
+            MoveDirection.z += 1;
+        }
+        if (glfwGetKey(Window, GLFW_KEY_S) == GLFW_PRESS) {
+            MoveDirection.z -= 1;
+        }
+        if (glfwGetKey(Window, GLFW_KEY_A) == GLFW_PRESS) {
+            MoveDirection.x -=1;
+        }
+        if (glfwGetKey(Window, GLFW_KEY_D) == GLFW_PRESS) {
+            MoveDirection.x +=1;
+        }
+        if (MoveDirection.x != 0 || MoveDirection.z != 0) {
+            Vec3f Forward = Vec3f_NormalizeFrom(Quaternion_MultVec(Camera.Orientation, MoveDirection));
+             
+            const float Speed = 10.0;
+            Camera.Position = Vec3f_Add(Camera.Position, Vec3f_Mult(Forward, Speed * DeltaTime));
+        }
+
         float t = (Cosf(glfwGetTime()) + 1.0) / 2.0;
 
         Mat33 Rotation = RotationInterpolation(StartRotationInterpolation, EndRotationInterpolation, t);
         Mat44 RotationMatrix = Mat44_FromMat33(Rotation);
 
         Mat44 Model = Mat44_MultMat(TranslationMatrix, RotationMatrix);
-        Mat44 MVP = Mat44_MultMat(Projection, Mat44_MultMat(View, Model));
+        Mat44 View = ViewMatrixFromCamera(Camera);//*/Mat44_LookAt(Vec3f_Make(0, 0, -1), Vec3f_Make(0, 0, 2.5), Vec3f_Make(0, 1, 0));
+        Mat44 MVP = Mat44_MultMat3(Projection, View, Model);
 
         //my Matrices are row-major, opengl wants column-major, therefore we need to transpose
         GLint ModelLocation = glGetUniformLocation(ShaderProgram, "Model");
@@ -480,9 +556,12 @@ int main(int Argc __unused, char** Argv __unused)
 
         glfwSwapBuffers(Window);
 
+        LastTimeStamp = CurrentTime;
+
         // Me showing off i can manually manage a 60fps so that i don't use 80% because i'm drawing like a mad man
         // Obviously, it barelly works, sometime it just hangs
         while ((glfwGetTime() - CurrentTime) < TimeForFrame) { usleep(200); }
+        
     }
 
     glfwTerminate();

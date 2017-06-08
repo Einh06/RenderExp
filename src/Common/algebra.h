@@ -19,6 +19,11 @@ typedef struct Vec4f {
     float x, y, z, w;
 } Vec4f;
 
+
+typedef Vec2f Pos2f;
+typedef Vec3f Pos3f;
+typedef Vec4f Pos4f;
+
 /**********************************
  *          2D VECTOR             *
  **********************************/
@@ -367,6 +372,36 @@ Mat33 Mat33_MakeScale(float sx, float sy, float sz)
     return Result;
 }
 
+Mat33 Mat33_MakeRotationX(float Angle) 
+{
+    float C = Cosf(Angle);
+    float S = Sinf(Angle);
+    Mat33 Result = Mat33_Make(1, 0, 0,
+                              0, C,-S,
+                              0, S, C); 
+    return Result;
+}
+
+Mat33 Mat33_MakeRotationY(float Angle) 
+{
+    float C = Cosf(Angle);
+    float S = Sinf(Angle);
+    Mat33 Result = Mat33_Make( C, 0, S,
+                               0, 1, 0,
+                              -S, 0, C ); 
+    return Result;
+}
+
+Mat33 Mat33_MakeRotationZ(float Angle) 
+{
+    float C = Cosf(Angle);
+    float S = Sinf(Angle);
+    Mat33 Result = Mat33_Make(C,-S, 0,
+                              S, C, 0,
+                              0, 0, 1 ); 
+    return Result;
+}
+
 Mat33 Mat33_MakeRotation(Vec3f Axis, float Angle)
 {
 
@@ -485,6 +520,10 @@ Mat44 Mat44_MultMat(Mat44 a, Mat44 b)
     return Result;
 }
 
+#define Mat44_MultMat3(a, b , c)        Mat44_MultMat(a, Mat44_MultMat(b, c)) 
+#define Mat44_MultMat4(a, b , c, d)     Mat44_MultMat(a, Mat44_MultMat3(b, c, d)) 
+#define Mat44_MultMat5(a, b , c, d, e)  Mat44_MultMat(a, Mat44_MultMat4(b, c, d, e)) 
+
 Vec4f Mat44_MultVec(Mat44 a, Vec4f v) 
 {
     Vec4f Result;
@@ -540,34 +579,19 @@ Mat44 Mat44_MakeTranslate(float dx, float dy, float dz)
 
 Mat44 Mat44_MakeRotationX(float Angle) 
 {
-    float C = Cosf(Angle);
-    float S = Sinf(Angle);
-    Mat44 Result = Mat44_Make(1, 0, 0, 0,
-                              0, C,-S, 0,
-                              0, S, C, 0,
-                              0, 0, 0, 1 ); 
+    Mat44 Result = Mat44_FromMat33(Mat33_MakeRotationX(Angle));
     return Result;
 }
 
 Mat44 Mat44_MakeRotationY(float Angle) 
 {
-    float C = Cosf(Angle);
-    float S = Sinf(Angle);
-    Mat44 Result = Mat44_Make( C, 0, S, 0,
-                               0, 1, 0, 0,
-                              -S, 0, C, 0,
-                               0, 0, 0, 1 ); 
+    Mat44 Result = Mat44_FromMat33(Mat33_MakeRotationY(Angle));
     return Result;
 }
 
 Mat44 Mat44_MakeRotationZ(float Angle) 
 {
-    float C = Cosf(Angle);
-    float S = Sinf(Angle);
-    Mat44 Result = Mat44_Make(C,-S, 0, 0,
-                              S, C, 0, 0,
-                              0, 0, 1, 0,
-                              0, 0, 0, 1 ); 
+    Mat44 Result = Mat44_FromMat33(Mat33_MakeRotationZ(Angle));
     return Result;
 }
 

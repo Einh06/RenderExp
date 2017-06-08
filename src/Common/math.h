@@ -6,6 +6,8 @@
 #define M_PI    3.141592653
 #define M_2_PI  6.283185307
 
+#define INFINITY 1e32
+
 float DegToRad(float d)
 {
     return d * 0.017453293; // PI / 180
